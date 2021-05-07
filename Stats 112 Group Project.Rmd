@@ -1,0 +1,161 @@
+---
+title: "Group Project Stats 112"
+author: "Alec, Jay, Lynn"
+date: "5/7/2021"
+output: html_document
+---
+
+##Setup ---
+
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(nlme)
+library(mgcv)
+aids = read.csv("aids.csv")
+
+glimpse(aids)
+```
+
+##Exploratory Data Analysis --- 
+
+```{r}
+subjects = unique(aids$id)
+subjects = max(subjects)
+```
+
+The number of subjects in the dataset is `r subjects`
+The number of the covariates is `r ncol(aids) `
+
+##Univariate summaries 
+```{r}
+# Distribution of Age
+aids %>% 
+  ggplot(aes(x = age)) + 
+  geom_histogram(bins = 15, color = "black", fill = "gray")
+```
+
+
+```{r}
+# Distribution of people in each treatment group
+table(aids$treatment)
+round(prop.table(table(aids$treatment)), 2)
+```
+
+
+
+##Bivariate summaries 
+```{r}
+#Boxplot based on treatment group
+aids %>% 
+  ggplot(aes(x = factor(treatment), y = log_cd4, 
+             fill = factor(treatment))) +
+  geom_boxplot()
+```
+
+```{r}
+#Boxplot based on gender
+aids %>% 
+  ggplot(aes(x = gender, y = log_cd4, fill = gender)) +
+  geom_boxplot()
+```
+
+
+##Overall trends of response ---
+
+```{r}
+# Mean log_cd4 per week of each treatment 
+
+aids %>% 
+ group_by(treatment, week) %>% 
+ summarize(mean_logcd4 = mean(log_cd4)) %>% 
+ ggplot(aes(x = week, y = mean_logcd4,  color =  factor(treatment))) +  
+ labs(title = "Smoothed Trend of Each Treatment",
+      y = "Mean Log cd4", x = "Week") +
+ geom_smooth(se = FALSE) +
+  facet_wrap(~treatment)
+```
+
+```{r}
+
+# Trends pf each subject per week separated by treatment
+aids %>% 
+ ggplot(aes(x = week, y = log_cd4, color = factor(treatment)))+
+ geom_point(alpha = 0.3) +
+ geom_smooth(se = FALSE) +
+ labs(title = "Smoothed Trend of Each Subject",
+      y = " Log cd4", x = "Week")
+```
+
+```{r}
+
+#Trends by grouping by treatment and week
+aids %>% 
+  group_by(treatment, week) %>% 
+  summarize(mean_log = mean(log_cd4)) %>% 
+  ggplot(aes(x = week, y = mean_log, color = factor(treatment))) +
+  geom_point(alpha = 0.3) + 
+  geom_smooth(se = FALSE)
+```
+
+
+##Imbalances in the data ---
+
+
+
+
+
+## Outliers ---
+
+We can see from the boxplots above there are quite a few outliers in the log_cd4 per treatment. To see the overall number of outliers we can create a boxplot of the log_cd4 and count the numbers outside of the interquartile range
+
+
+```{r}
+aids %>% 
+  ggplot(aes(y = log_cd4)) +
+  geom_boxplot()
+```
+These are the outliers and the total number of outliers are 
+```{r}
+#outliers values
+tibble(outliers = boxplot.stats(aids$log_cd4)$out )
+
+#number of outliers 
+observerd = tibble(r = boxplot.stats(aids$log_cd4)$out) %>% 
+  nrow()
+
+#expected number of outliers are
+expected = nrow(aids) * .05
+```
+There is about `r observerd` outliers and the expected is `r expected`.
+We are below the number of expected number of outliers so the observed outliers are normal.
+
+
+<p>Let us check the distribution of the log_cd4 and assess its normality</p>
+```{r}
+
+aids %>% 
+  ggplot(aes(x = log_cd4)) +
+   geom_histogram(bins = 15, color = "black", fill = "gray") +
+   labs(title = "Histogram of Log_cd4")
+  
+
+```
+
+The histogram its approximately normal, but we can get more information but standardizing the log_cd4
+
+```{r}
+
+# Standardized of log_cd4 with mean 0 and sd 1 
+log_cd4 = aids$log_cd4
+
+scaled = scale(log_cd4)
+colMeans(scaled)
+apply(scaled, 2, sd)
+
+tibble(r = scaled) %>% 
+  ggplot(aes(x = r)) +
+  geom_histogram( color = "black", fill = "gray") +
+  labs(title = "Standardized Histogram of Log_cd4")
+```
+
+We can see that there is quite a few number of instances after the -2. This indicates heavy tails as well as outliers
