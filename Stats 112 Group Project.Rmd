@@ -27,6 +27,23 @@ The number of subjects in the dataset is `r subjects`
 The number of the covariates is `r ncol(aids) `
 
 ##Univariate summaries 
+
+```{r}
+summary(aids)
+
+aids %>% 
+  summarize(mean_log_cd4 = mean(log_cd4, na.rm = TRUE), 
+            stdev_log_cd4 = sd(log_cd4, na.rm = TRUE))
+aids %>% 
+  group_by(treatment) %>% 
+  summarize(mean_log_cd4 = mean(log_cd4, na.rm = TRUE), 
+            stdev_log_cd4 = sd(log_cd4, na.rm = TRUE))
+```
+We can see that for this longitudinal study, the log_cd4 values range from 0 to 6.29, with a median of 2.9 and a mean of 2.87. The 3rd quantile is around 3.57, but the maximum is 6.297, which may indicate that we have potential outlier. When we look at the overall mean and standard deviation of log(cd4), the mean is around 2.87 and the standard deviation is around 1.07. We can see that the maximum log_cd4 value 6.29 is more than 2 standard deviations away from the overall mean, supporting our estimate that that value could be an outlier in the dataset. We can also see in the upcoming boxplots that there are some outliers.
+When we look at the mean and standard deviations of log_cd4 for each treatment group, we can see that as the treatment code increases, the mean and standard deviation of log_cd4 also increases.
+
+
+
 ```{r}
 # Distribution of Age
 aids %>% 
@@ -87,22 +104,47 @@ aids %>%
 ```
 
 ```{r}
-
-#Trends by grouping by treatment and week
 aids %>% 
   group_by(treatment, week) %>% 
-  summarize(mean_log = mean(log_cd4)) %>% 
-  ggplot(aes(x = week, y = mean_log, color = factor(treatment))) +
-  geom_point(alpha = 0.3) + 
-  geom_smooth(se = FALSE)
+  summarize(mean_log_cd4 = mean(log_cd4, na.rm = TRUE)) %>% 
+  ggplot(aes(x = week, y = mean_log_cd4, color = factor(treatment))) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) + 
+  labs(x = "Week", y = "Log(CD4)")
 ```
+
+In this plot, we can see that as the weeks increase, the mean values of log_cd4 for each treatment group stays relatively constant. There does seem to be a large scatter of points that might significantly deviate from the mean.
+
 
 
 ##Imbalances in the data ---
 
+```{r}
+aids %>%
+  group_by(id) %>% 
+  count() %>% 
+  summary()
+```
 
+We can see that the number of observations per id ranges from 1 to 9, with a median of 4 and a mean of around 3.8. It is safe to assume that the data is imbalanced, because each subject does not have a constant number of observations.
 
+```{r}
+aids %>%
+  group_by(treatment) %>% 
+  distinct(id) %>% 
+  count()
+```
+We can see that the amount of people in each treatment group is pretty balanced, with each treatment group having around 325 subjects.
 
+#Mistimmed events?
+```{r}
+aids %>% 
+  filter(treatment == 2) %>% 
+  ggplot(aes(x = week)) +
+  geom_histogram(color = "black", fill = "gray") +
+  labs(title = "Week of Treatment 2 group")
+```
+As we can see from this graph that all of those in treatment two have different timed occasions, if there were a set occasion then it would stack up similar to the base line or at week 0. 
 
 ## Outliers ---
 
