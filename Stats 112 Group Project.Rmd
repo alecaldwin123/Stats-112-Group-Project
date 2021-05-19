@@ -83,13 +83,12 @@ aids %>%
 # Mean log_cd4 per week of each treatment 
 
 aids %>% 
- group_by(treatment, week) %>% 
- summarize(mean_logcd4 = mean(log_cd4)) %>% 
- ggplot(aes(x = week, y = mean_logcd4,  color =  factor(treatment))) +  
+ ggplot(aes(x = week, y = log_cd4,  color =  factor(treatment))) +  
  labs(title = "Smoothed Trend of Each Treatment",
-      y = "Mean Log cd4", x = "Week") +
+      y = "Log cd4", x = "Week") +
  geom_smooth(se = FALSE) +
   facet_wrap(~treatment)
+
 ```
 
 ```{r}
@@ -99,6 +98,7 @@ aids %>%
  ggplot(aes(x = week, y = log_cd4, color = factor(treatment)))+
  geom_point(alpha = 0.3) +
  geom_smooth(se = FALSE) +
+ coord_cartesian(ylim = c(2.2,3.3)) + 
  labs(title = "Smoothed Trend of Each Subject",
       y = " Log cd4", x = "Week")
 ```
@@ -201,3 +201,200 @@ tibble(r = scaled) %>%
 ```
 
 We can see that there is quite a few number of instances after the -2. This indicates heavy tails as well as outliers
+
+
+
+##modeling -----
+ 
+```{r}
+
+
+aids = aids %>% 
+  mutate(occasion = ceiling(week),
+         gender = factor(gender, level = c("male", "female")),
+         treatment = as.factor(treatment))
+
+
+model1 = lme(log_cd4 ~ occasion + I(occasion^2) + 
+               treatment + treatment:occasion + age + gender, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "REML")
+
+summary(model1)
+```
+Because it is a randomized experiment we do not need the group effect of treatment and therefore treatmetn could be removed in the model
+
+
+
+```{r}
+model1 = lme(log_cd4 ~ occasion + I(occasion^2) + 
+             treatment:occasion + age + gender, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "REML")
+
+summary(model1)
+```
+
+```{r}
+model_no_gender = lme(log_cd4 ~ occasion + I(occasion^2) + 
+             treatment:occasion + treatment:I(occasion^2) +
+               age, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "ML")
+
+model = lme(log_cd4 ~ occasion + I(occasion^2) + 
+             treatment:occasion + treatment:I(occasion^2) + age + gender, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "ML")
+
+anova(model_no_gender, model)
+```
+
+$H_0:$ the reduced model without gender is better.
+The AIC for model_no_gender is less than the AIC for model, and the p-value = 0.2428 > $\alpha = 0.05$, which means that we faili to reject the null hypothesis, and can conclude that the model without gender is better.
+
+
+
+```{r}
+model_interactions = lme(log_cd4 ~  occasion + I(occasion^2) + 
+             treatment:occasion + treatment:I(occasion^2) + 
+               age, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "ML")
+
+model_without_interaction = lme(log_cd4 ~  occasion + I(occasion^2) + 
+             age, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "ML")
+
+anova(model_interactions, model_without_interaction)
+```
+
+$H_0:$ the reduced model without interactions terms is better
+
+Reject the null (p-value <.0001 ), and conclude that the model with interaction term is better compared to the model without without interaction terms
+```{r}
+
+
+model_no_gender = lme(log_cd4 ~ occasion + I(occasion^2) + 
+             treatment:occasion + treatment:I(occasion^2)
+               +  age, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "REML")
+summary(model_no_gender)
+```
+
+```{r}
+model_linear = lme(log_cd4 ~ occasion  + 
+             treatment:occasion +  age, data = aids,
+             random = ~ occasion | id,
+             method = "ML")
+
+model_quadratic = lme(log_cd4 ~ occasion + I(occasion^2) + 
+             treatment:occasion + treatment:I(occasion^2)
+               +  age, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "ML")
+
+anova(model_linear, model_quadratic)
+```
+$H_0:$ the reduced model without quadratic terms are better
+
+Reject the null (p-value <.0001 ), and conclude that the model with quadratic terms better compared linear model
+
+
+We will first compare a linear model with a linear spline model.  
+Linear Spline Model: $E(Y_{ij}|b_i) = \beta_1 + \beta_2occasion_{ij} + \beta_3age_{ij} + \beta_4(occasion_{ij})_+ + \beta_5occasion_{ij}treatment2 + \beta_6occasion_{ij}treatment3 + \beta_7occasion_{ij}treatment4 + b_{1i} + b_{2i}occasion_{ij} + b_{3i}(occasion_{ij})_+$   
+```{r}
+aids <- aids %>% 
+    mutate(knot_term = if_else(occasion > 20, occasion, 0)) %>% 
+    relocate(knot_term, .after = occasion)
+
+ctrl <- lmeControl(opt = 'optim')
+model_spline = lme(log_cd4 ~ occasion + 
+             treatment:occasion + age + knot_term, data = aids,
+             random = ~ occasion + knot_term| id,
+             method = "ML",
+             control = ctrl)
+summary(model_spline)
+```
+
+
+
+
+```{r}
+anova(model_linear, model_spline)
+```
+$H_0:$ the reduced model (model with no knot term) is better than the spline model (with the knot term).  
+Because the AIC of model_no_squared = 12049.15 is less than the AIC of model_spline = 11941.88 (and the p-value < 0.0001 > $\alpha = 0.05$), we reject the null, and conclude that the model with the knot term is better than the reduced model without the knot term. We can see that the linear spline model is better than the linear model.  
+
+### Quadratic Before Knot Term, Linear After Knot Term Spline  
+Spline Model: $E(Y_{ij}|b_i) = \beta_1 + \beta_2occasion_{ij} + \beta_3age_{ij} + \beta_4(occasion^2_{ij})_+ + \beta_5occasion_{ij}treatment2 + \beta_6occasion_{ij}treatment3 + \beta_7occasion_{ij}treatment4 + b_{1i} + b_{2i}occasion_{ij} + b_{3i}(occasion^2_{ij})_+$   
+```{r}
+aids <- aids %>% 
+    mutate(knot_term1 = if_else(occasion > 20, occasion^2, 0)) %>% 
+    relocate(knot_term1, .after = occasion)
+
+ctrl <- lmeControl(opt = 'optim')
+model_spline1 = lme(log_cd4 ~ occasion + 
+             treatment:occasion + age + knot_term1, data = aids,
+             random = ~ occasion + knot_term1| id,
+             method = "ML",
+             control = ctrl)
+summary(model_spline1)
+```
+
+```{r}
+anova(model_spline, model_spline1)
+anova(model_linear, model_spline1)
+```
+Looking at the first ANOVA call, we can see that the model with a quadratic function before the knot term and linear function after the knot term has a lower AIC, which implies that a quadratic spline will fit the data better.  
+Second ANOVA call:  
+$H_0:$ model_no_squared is better  
+Because the p-value <.0001 > $\alpha = 0.05$, we reject the null hypothesis and conclude that the model with a quadratic function before the knot term and linear function after the knot term is better than a linear model.  
+
+```{r}
+anova(model_quadratic, model_spline1)
+```
+
+
+When comparing a quadratic model to the model with a quadratic function before the knot term and linear function after the knot term, we can see that the AIC of the quadratic model is lower than the spline model. We can conclude that the quadratic model fits the data better than the spline model.  
+
+### Quadratic Spline Model
+Quadratic Spline Model: $E(Y_{ij}|b_i) = \beta_1 + \beta_2occasion_{ij} + \beta_2occasion^2_{ij} + \beta_4age_{ij} + \beta_5(occasion^2_{ij})_+ +  \beta_6occasion_{ij}treatment2 + \beta_7occasion_{ij}treatment3 + \beta_8occasion_{ij}treatment4 + b_{1i} + b_{2i}occasion_{ij} + b_{3i}(occasion^2_{ij})_+$    
+```{r}
+ctrl <- lmeControl(opt = 'optim')
+model_quad_splines = lme(log_cd4 ~ occasion + I(occasion^2) + 
+             treatment:occasion + age + knot_term1, data = aids,
+             random = ~ occasion + I(occasion^2) + knot_term1| id,
+             method = "ML",
+             control = ctrl)
+summary(model_quad_splines)
+```
+
+
+```{r}
+anova(model_quadratic, model_quad_splines)
+```
+$H_0:$ The reduced model (model_no_gender) is better.  
+Because the p-value = 0.4779 > $\alpha = 0.05$, we fail to reject the null. We conclude that the Quadratic model is better than the Quadratic Spline model.  
+
+### We can conclude that it is better to use the quadratic model than both a spline model and a linear model.   
+
+The equation that we have concluded is: has the lowest AIC 
+
+Y = B1 + B2 * occasion + B3 * occasion^2 + B4 * age +
+    B5 * occasion:treatment2 + B6 * occasion:treatment3 +
+    B7 * occasion:treatment4 + B8 * occasion^2:(treatment2 - 1)+
+    B9 * occasion^2:(treatment3 - 1) + B10 * (occasion^2 - 16):treatment4
+
+
+Note: We did not remove the interaction terms or occasion that are not significant since the other interaction terms or occasion was significant. 
+Occasion is significant but occasion^2 is not, and some interaction terms of occasion^2 is siginificant
+
+
+Notes: 
+Compare two models with AIC if they are not nested,
+if models are nested use anova
+Change the model that we have to what we have in the front, the - 1 are added since they are linear models instead of quadratic that is why they are not significant
+and treatment 4 looks like a quadratic but then most of it becomes linear so we can add a knot term. anything before 16 is a quadratic and everything after 16 is linear
