@@ -104,7 +104,6 @@ The qq plot reveals the tails for the distribution of our residuals are quite he
 =======
 
 ## Transformed Predicted values vs. Transformed Residuals  
->>>>>>> c463f921b94c7b424dfb04d5faba979be5be0037
 ```{r}
 #transformed vs actual residual
 predicted_prog = fitted(model_quadratic, level = 0)
