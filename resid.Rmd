@@ -106,11 +106,11 @@ The qq plot reveals the tails for the distribution of our residuals are quite he
 ## Transformed Predicted values vs. Transformed Residuals  
 ```{r}
 #transformed vs actual residual
-predicted_prog = fitted(model_quadratic, level = 0)
-predicted_prog_trans = solve(L_i) %*% predicted_prog
+mu_hat = fitted(model_quadratic, level = 0)
+mu_hat_transformed = solve(L_i) %*% predicted_prog
 
 
-tibble(x = predicted_prog_trans, y = res_prog_trans) %>% 
+tibble(x = mu_hat_transformed, y = res_prog_trans) %>% 
   ggplot(aes(x = x, y = y)) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
   geom_point(shape = 1) + 
@@ -120,19 +120,19 @@ tibble(x = predicted_prog_trans, y = res_prog_trans) %>%
 We can see that there doesn't seem to be any significant curvature in this graph, indicating that the constant variance assumption is correct.  
 However, we can see that there is a large gap between the points, which shows that there seems to be a gap in observed the covariates (x values).  
 
-## Absolute Transformed Predicted values vs. Transformed Residuals  
+## Transformed Predicted values vs. Absolute Transformed Residuals  
 ```{r}
-pred_prog_trans_abs = abs(predicted_prog_trans)
+#pred_prog_trans_abs = abs(mu_hat_transformed)
+res_prog_trans_abs = abs(res_prog_trans)
 
-
-tibble(x = pred_prog_trans_abs, y = res_prog_trans) %>% 
+tibble(x = mu_hat_transformed, y = res_prog_trans_abs) %>% 
   ggplot(aes(x = x, y = y)) +
   geom_hline(yintercept = 0.8, linetype = "dashed") + 
   geom_point(shape = 1) +
   geom_smooth(method = "loess", se = FALSE) +
   labs(x = "Transformed Predicted Value", y = "Absolute Transformed Residual")
 ```
-Using the loess smoothed curve, we can see that there is a noticable departure from the straight line centered at approximately 0.8. The smoothed curve is relatively straight, but is centered around 0. This may indicate that the model for the variance may not be adequate.  
+Using the loess smoothed curve, we can see that there is not a noticable departure from the straight line centered at approximately 0.8. The smoothed curve is relatively straight, but is centered around 0.8. This indicates that the model for the variance is adequate.  
 
 ## Mahalanobis Data  
 ```{r}
@@ -172,15 +172,18 @@ Using the mahalanobis data, we can see that we have 129 subjects who have a p-va
 
 ## Semi-Variogram  
 ```{r}
+aids = aids %>% 
+  mutate(occasion_sqr = occasion ^ 2)
+
 Variogram(model_quadratic,
           data = aids,
-          form = ~ occasion | id,
+          form = ~ occasion + occasion_sqr| id,
           resType = "normalized") %>% 
   as_tibble() %>% 
   ggplot(aes(x = dist, y = variog)) + 
   geom_hline(yintercept = 1, linetype = "dashed") +
   geom_point(shape = 1) +
-  geom_smooth(method = "loess", se = FALSE, span = .3)
+  geom_smooth(method = "loess", se = FALSE, span = .2)
 ```
 
-Looking at the semi-variogram, we can see that the loess smoothed curve does not seem to fluctuate randomly around the horizontal linie centered at 1. In fact, it seems to decrease consistently as time passes. This may indicate that our covariance model is inadequate.  
+Looking at the semi-variogram, we can see that the loess smoothed curve does seem to fluctuate randomly around 1.0, but has a general decreasing trend. This could indicate that our model's covariance matrix may not be adequate.   
