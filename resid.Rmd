@@ -1,6 +1,6 @@
 ---
 title: "Residual Model"
-author: "Jay, Alec, Lynn\"
+author: "Jay, Alec, Lynn"
 date: "5/21/2021"
 output: html_document
 ---
@@ -19,7 +19,7 @@ aids = aids %>%
 glimpse(aids)
 ```
 
-#model we have
+# model we have
 
 ```{r}
 aids <- aids %>% 
@@ -57,7 +57,9 @@ anova(model_spline2, model_quadratic)
 ```
 An ANOVA analysis on our two models above demonstrates that the quadratic model seems to be a better fit for the data that we are given. A significant p-value (p < 0.001) further verifies this assertion. 
 
-#residual Analysis
+# Residual Analysis  
+
+## Histogram of Transformed and Non-transformed Residuals  
 ```{r}
 
 res_prog = residuals(model_quadratic, level = 0)
@@ -80,6 +82,7 @@ tibble(r = res_prog_trans) %>%
 This plot shows the density of our transformed residuals. It appears that our transformed residuals seem to follow a Normal distribution, or at the very least, a a symmetric distribution. 
 
 
+
 ```{r}
 tibble(r = res_prog) %>% 
   ggplot(aes(x = r)) +
@@ -88,14 +91,20 @@ tibble(r = res_prog) %>%
 ```
 This plot shows the distribution of our residuals (without any transformation). The distribution appears to be a little more left-skewed in comparison to the histogram of our transformed residuals. 
 
+## QQ-Plot  
 ```{r}
 tibble(r = res_prog_trans) %>% 
   ggplot(aes(sample = r)) + 
   geom_qq_line(color = "blue") +
   geom_qq()
 ```
+<<<<<<< HEAD
 The qq plot reveals the tails for the distribution of our residuals are quite heavy. This brings into question whether or not the residuals actually follow a normal distribution. Furthermore, several lingering points at the end of each tail suggest that we may have outliers present in our dataset. 
 
+=======
+
+## Transformed Predicted values vs. Transformed Residuals  
+>>>>>>> c463f921b94c7b424dfb04d5faba979be5be0037
 ```{r}
 #transformed vs actual residual
 predicted_prog = fitted(model_quadratic, level = 0)
@@ -108,6 +117,7 @@ tibble(x = predicted_prog_trans, y = res_prog_trans) %>%
   geom_point(shape = 1)
 ```
 
+## Absolute Transformed Predicted values vs. Transformed Residuals  
 ```{r}
 pred_prog_trans_abs = abs(predicted_prog_trans)
 
@@ -119,6 +129,7 @@ tibble(x = pred_prog_trans_abs, y = res_prog_trans) %>%
   geom_smooth(method = "loess", se = FALSE)
 ```
 
+## Mahalanobis Data  
 ```{r}
 mahalanobis_data = tibble(id = aids$id, r_star = res_prog_trans) %>% group_by(id) %>% 
   nest()
@@ -151,7 +162,7 @@ mahalanobis_data_p %>% filter(p_value <=.05)
 expected = 5036 *.05
 ```
 
-
+## Semi-Variogram  
 ```{r}
 Variogram(model_quadratic,
           data = aids,
