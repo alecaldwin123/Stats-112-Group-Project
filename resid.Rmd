@@ -1,6 +1,6 @@
 ---
 title: "Residual Model"
-author: "Jay, Alec, Lynn\"
+author: "Jay, Alec, Lynn"
 date: "5/21/2021"
 output: html_document
 ---
@@ -19,7 +19,7 @@ aids = aids %>%
 glimpse(aids)
 ```
 
-#model we have
+# model we have
 
 ```{r}
 aids <- aids %>% 
@@ -52,7 +52,9 @@ summary(model_quadratic)
 ```
 
 
-#residual Analysis
+# Residual Analysis  
+
+## Histogram of Transformed and Non-transformed Residuals  
 ```{r}
 
 res_prog = residuals(model_quadratic, level = 0)
@@ -73,6 +75,7 @@ tibble(r = res_prog_trans) %>%
   geom_function(fun = dnorm, color = "blue")
 ```
 
+
 ```{r}
 tibble(r = res_prog) %>% 
   ggplot(aes(x = r)) +
@@ -80,6 +83,7 @@ tibble(r = res_prog) %>%
   geom_function(fun = dnorm, color = "blue")
 ```
 
+## QQ-Plot  
 ```{r}
 tibble(r = res_prog_trans) %>% 
   ggplot(aes(sample = r)) + 
@@ -87,7 +91,7 @@ tibble(r = res_prog_trans) %>%
   geom_qq()
 ```
 
-
+## Transformed Predicted values vs. Transformed Residuals  
 ```{r}
 #transformed vs actual residual
 predicted_prog = fitted(model_quadratic, level = 0)
@@ -100,6 +104,7 @@ tibble(x = predicted_prog_trans, y = res_prog_trans) %>%
   geom_point(shape = 1)
 ```
 
+## Absolute Transformed Predicted values vs. Transformed Residuals  
 ```{r}
 pred_prog_trans_abs = abs(predicted_prog_trans)
 
@@ -111,6 +116,7 @@ tibble(x = pred_prog_trans_abs, y = res_prog_trans) %>%
   geom_smooth(method = "loess", se = FALSE)
 ```
 
+## Mahalanobis Data  
 ```{r}
 mahalanobis_data = tibble(id = aids$id, r_star = res_prog_trans) %>% group_by(id) %>% 
   nest()
@@ -143,7 +149,7 @@ mahalanobis_data_p %>% filter(p_value <=.05)
 expected = 5036 *.05
 ```
 
-
+## Semi-Variogram  
 ```{r}
 Variogram(model_quadratic,
           data = aids,
