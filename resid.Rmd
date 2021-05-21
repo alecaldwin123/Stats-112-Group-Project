@@ -19,7 +19,7 @@ aids = aids %>%
 glimpse(aids)
 ```
 
-# model we have
+# Current Model  
 
 ```{r}
 aids <- aids %>% 
@@ -99,7 +99,7 @@ tibble(r = res_prog_trans) %>%
   geom_qq()
 ```
 <<<<<<< HEAD
-The qq plot reveals the tails for the distribution of our residuals are quite heavy. This brings into question whether or not the residuals actually follow a normal distribution. Furthermore, several lingering points at the end of each tail suggest that we may have outliers present in our dataset. 
+The qq plot reveals the tails for the distribution of our residuals are quite heavy. This brings into question whether or not the residuals actually follow a normal distribution. Furthermore, several lingering points at the end of each tail suggest that we may have outliers present in our dataset (this is further discussed in the mahalanobis data section below). 
 
 =======
 
@@ -113,8 +113,12 @@ predicted_prog_trans = solve(L_i) %*% predicted_prog
 tibble(x = predicted_prog_trans, y = res_prog_trans) %>% 
   ggplot(aes(x = x, y = y)) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
-  geom_point(shape = 1)
+  geom_point(shape = 1) + 
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(x = "Transformed Predicted Value", y = "Transformed Residual")
 ```
+We can see that there doesn't seem to be any significant curvature in this graph, indicating that the constant variance assumption is correct.  
+However, we can see that there is a large gap between the points, which shows that there seems to be a gap in observed the covariates (x values).  
 
 ## Absolute Transformed Predicted values vs. Transformed Residuals  
 ```{r}
@@ -125,8 +129,10 @@ tibble(x = pred_prog_trans_abs, y = res_prog_trans) %>%
   ggplot(aes(x = x, y = y)) +
   geom_hline(yintercept = 0.8, linetype = "dashed") + 
   geom_point(shape = 1) +
-  geom_smooth(method = "loess", se = FALSE)
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(x = "Transformed Predicted Value", y = "Absolute Transformed Residual")
 ```
+Using the loess smoothed curve, we can see that there is a noticable departure from the straight line centered at approximately 0.8. The smoothed curve is relatively straight, but is centered around 0. This may indicate that the model for the variance may not be adequate.  
 
 ## Mahalanobis Data  
 ```{r}
@@ -159,7 +165,10 @@ mahalanobis_data_p %>% filter(p_value <=.05)
 #expected outliers are
 
 expected = 5036 *.05
+expected
 ```
+
+Using the mahalanobis data, we can see that we have 129 subjects who have a p-value < 0.05. From the size of our data, we expect that we will have 251.8 outliers. Our actual 129 outliers fall within the range of 251.8, so we do not need to be concerned about the outliers we find here and see in the QQ-plot.  
 
 ## Semi-Variogram  
 ```{r}
@@ -174,3 +183,4 @@ Variogram(model_quadratic,
   geom_smooth(method = "loess", se = FALSE, span = .3)
 ```
 
+Looking at the semi-variogram, we can see that the loess smoothed curve does not seem to fluctuate randomly around the horizontal linie centered at 1. In fact, it seems to decrease consistently as time passes. This may indicate that our covariance model is inadequate.  
