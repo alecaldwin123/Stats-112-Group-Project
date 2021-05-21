@@ -52,6 +52,7 @@ summary(model_quadratic)
 ```
 
 
+
 #residual Analysis
 ```{r}
 
@@ -72,6 +73,8 @@ tibble(r = res_prog_trans) %>%
   geom_histogram(aes(y = stat(density)), bins = 14 ) +
   geom_function(fun = dnorm, color = "blue")
 ```
+This plot shows the density of our transformed residuals. It appears that our transformed residuals seem to follow a Normal distribution, or at the very least, a a symmetric distribution. 
+
 
 ```{r}
 tibble(r = res_prog) %>% 
@@ -79,6 +82,7 @@ tibble(r = res_prog) %>%
   geom_histogram(aes(y = stat(density)), bins = 14 ) +
   geom_function(fun = dnorm, color = "blue")
 ```
+This plot shows the distribution of our residuals (without any transformation). The distribution appears to be a little more left-skewed in comparison to the histogram of our transformed residuals. 
 
 ```{r}
 tibble(r = res_prog_trans) %>% 
@@ -86,7 +90,7 @@ tibble(r = res_prog_trans) %>%
   geom_qq_line(color = "blue") +
   geom_qq()
 ```
-
+The qq plot reveals the tails for the distribution of our residuals are quite heavy. This brings into question whether or not the residuals actually follow a normal distribution. Furthermore, several lingering points at the end of each tail suggest that we may have outliers present in our dataset. 
 
 ```{r}
 #transformed vs actual residual
