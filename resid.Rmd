@@ -51,7 +51,11 @@ model_quadratic = lme(log_cd4 ~ occasion + I(occasion^2) +
 summary(model_quadratic)
 ```
 
-
+```{r}
+#Anova on our two models above
+anova(model_spline2, model_quadratic)
+```
+An ANOVA analysis on our two models above demonstrates that the quadratic model seems to be a better fit for the data that we are given. A significant p-value (p < 0.001) further verifies this assertion. 
 
 #residual Analysis
 ```{r}
