@@ -1,0 +1,43 @@
+---
+title: "Residual Model"
+author: "Jay, Alec, Lynn\"
+date: "5/21/2021"
+output: html_document
+---
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(nlme)
+library(mgcv)
+aids = read.csv("aids.csv")
+
+glimpse(aids)
+
+aids = aids %>% 
+  mutate(occasion = ceiling(week),
+         gender = factor(gender, level = c("male", "female")),
+         treatment = as.factor(treatment))
+```
+
+#model we have
+
+```{r}
+
+
+
+aids <- aids %>% 
+    mutate(knot_term1 = if_else(treatment == 4, occasion^2, 0)) %>% 
+    relocate(knot_term1, .after = occasion)
+
+ctrl <- lmeControl(opt = 'optim')
+model_spline2 = lme(log_cd4 ~ occasion + 
+             treatment:occasion + age + knot_term1, data = aids,
+             random = ~ occasion | id,
+             method = "REML",
+             control = ctrl)
+summary(model_spline2)
+```
+
+```{r}
+
+```
+
