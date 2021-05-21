@@ -87,9 +87,11 @@ aids %>%
  labs(title = "Smoothed Trend of Each Treatment",
       y = "Log cd4", x = "Week") +
  geom_smooth(se = FALSE) +
-  facet_wrap(~treatment)
+  facet_wrap(~factor(treatment))
 
 ```
+
+
 
 ```{r}
 

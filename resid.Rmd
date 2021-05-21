@@ -23,8 +23,7 @@ glimpse(aids)
 
 ```{r}
 aids <- aids %>% 
-    mutate(knot_term1 = if_else(treatment == 4 & occasion <= 16, occasion^2, occasion),
-           knot_term2 = if_else(treatment == 2, 0, occasion)) %>% 
+    mutate(knot_term1 = if_else((treatment == 4 & occasion <= 16), occasion^2, 0)) %>% 
     relocate(knot_term1, .after = occasion)
 
 
@@ -187,3 +186,6 @@ Variogram(model_quadratic,
 ```
 
 Looking at the semi-variogram, we can see that the loess smoothed curve does seem to fluctuate randomly around 1.0, but has a general decreasing trend. This could indicate that our model's covariance matrix may not be adequate.   
+
+
+
