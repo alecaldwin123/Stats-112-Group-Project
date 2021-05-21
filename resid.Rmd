@@ -10,36 +10,149 @@ library(nlme)
 library(mgcv)
 aids = read.csv("aids.csv")
 
-glimpse(aids)
 
 aids = aids %>% 
   mutate(occasion = ceiling(week),
          gender = factor(gender, level = c("male", "female")),
          treatment = as.factor(treatment))
+
+glimpse(aids)
 ```
 
 #model we have
 
 ```{r}
-
-
-
 aids <- aids %>% 
-    mutate(knot_term1 = if_else(treatment == 4 & occassion < 16, occasion^2, occasion)) %>% 
+    mutate(knot_term1 = if_else(treatment == 4 & occasion <= 16, occasion^2, occasion),
+           knot_term2 = if_else(treatment == 2, 0, occasion)) %>% 
     relocate(knot_term1, .after = occasion)
-aids
+
+
 ctrl <- lmeControl(opt = 'optim')
 model_spline2 = lme(log_cd4 ~ occasion + 
-             treatment:occasion + age + knot_term1, data = aids,
+             treatment:occasion + age + knot_term1,
+             data = aids,
              random = ~ occasion | id,
              method = "REML",
              control = ctrl)
+
+
 summary(model_spline2)
+
 ```
+
+```{r}
+model_quadratic = lme(log_cd4 ~ occasion + I(occasion^2) + 
+             treatment:occasion + treatment:I(occasion^2)
+               +  age, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "REML")
+
+summary(model_quadratic)
+```
+
 
 #residual Analysis
 ```{r}
 
-model2_spli
+res_prog = residuals(model_quadratic, level = 0)
+
+
+sigma_i = extract.lme.cov(model_quadratic, aids)
+
+#lower triangular matrix
+L_i = t(chol(sigma_i))
+
+#transformed residuals
+res_prog_trans = solve(L_i) %*% res_prog
+
+
+tibble(r = res_prog_trans) %>% 
+  ggplot(aes(x = r)) +
+  geom_histogram(aes(y = stat(density)), bins = 14 ) +
+  geom_function(fun = dnorm, color = "blue")
+```
+
+```{r}
+tibble(r = res_prog) %>% 
+  ggplot(aes(x = r)) +
+  geom_histogram(aes(y = stat(density)), bins = 14 ) +
+  geom_function(fun = dnorm, color = "blue")
+```
+
+```{r}
+tibble(r = res_prog_trans) %>% 
+  ggplot(aes(sample = r)) + 
+  geom_qq_line(color = "blue") +
+  geom_qq()
+```
+
+
+```{r}
+#transformed vs actual residual
+predicted_prog = fitted(model_quadratic, level = 0)
+predicted_prog_trans = solve(L_i) %*% predicted_prog
+
+
+tibble(x = predicted_prog_trans, y = res_prog_trans) %>% 
+  ggplot(aes(x = x, y = y)) +
+  geom_hline(yintercept = 0, linetype = "dashed") + 
+  geom_point(shape = 1)
+```
+
+```{r}
+pred_prog_trans_abs = abs(predicted_prog_trans)
+
+
+tibble(x = pred_prog_trans_abs, y = res_prog_trans) %>% 
+  ggplot(aes(x = x, y = y)) +
+  geom_hline(yintercept = 0.8, linetype = "dashed") + 
+  geom_point(shape = 1) +
+  geom_smooth(method = "loess", se = FALSE)
+```
+
+```{r}
+mahalanobis_data = tibble(id = aids$id, r_star = res_prog_trans) %>% group_by(id) %>% 
+  nest()
+
+mahalanobis_data = mahalanobis_data %>% 
+  mutate(df = map_dbl(data, ~nrow(.x)))
+
+mahalanobis_dist = function(x){
+  x = as.matrix(x)
+  t(x) %*% x
+}
+
+mahalanobis_data = mahalanobis_data %>% 
+  mutate(d = map_dbl(data, ~mahalanobis_dist(.x)))
+
+mahalanobis_data = mahalanobis_data %>% 
+  mutate(p_value = pchisq(d, df, lower.tail = FALSE))
+
+
+mahalanobis_data_p = mahalanobis_data %>% 
+  arrange(p_value)
+
+mahalanobis_data_p %>% filter(p_value <=.05)
+
+```
+
+```{r}
+#expected outliers are
+
+expected = 5036 *.05
+```
+
+
+```{r}
+Variogram(model_quadratic,
+          data = aids,
+          form = ~ occasion | id,
+          resType = "normalized") %>% 
+  as_tibble() %>% 
+  ggplot(aes(x = dist, y = variog)) + 
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  geom_point(shape = 1) +
+  geom_smooth(method = "loess", se = FALSE, span = .3)
 ```
 
