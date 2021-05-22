@@ -2,7 +2,7 @@
 title: "Residual Model"
 author: "Jay, Alec, Lynn"
 date: "5/21/2021"
-output: html_document
+output: pdf_document
 ---
 ```{r message = FALSE, warning = FALSE}
 library(tidyverse)
@@ -106,7 +106,7 @@ The qq plot reveals the tails for the distribution of our residuals are quite he
 ```{r}
 #transformed vs actual residual
 mu_hat = fitted(model_quadratic, level = 0)
-mu_hat_transformed = solve(L_i) %*% predicted_prog
+mu_hat_transformed = solve(L_i) %*% mu_hat
 
 
 tibble(x = mu_hat_transformed, y = res_prog_trans) %>% 
