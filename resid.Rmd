@@ -131,7 +131,7 @@ tibble(x = mu_hat_transformed, y = res_prog_trans_abs) %>%
   geom_smooth(method = "loess", se = FALSE) +
   labs(x = "Transformed Predicted Value", y = "Absolute Transformed Residual")
 ```
-Using the loess smoothed curve, we can see that there is not a noticable departure from the straight line centered at approximately 0.8. The smoothed curve is relatively straight, but is centered around 0.8. This indicates that the model for the variance is adequate.  
+Using the loess smoothed curve, we can see that there is not a noticable departure from the straight line centered at approximately 0.8. The smoothed curve is relatively straight, but is centered around 0.8. This indicates that the model for the variance (and covariance) is adequate.  
 
 ## Mahalanobis Data  
 ```{r}
@@ -185,7 +185,7 @@ Variogram(model_quadratic,
   geom_smooth(method = "loess", se = FALSE, span = .2)
 ```
 
-Looking at the semi-variogram, we can see that the loess smoothed curve does seem to fluctuate randomly around 1.0, but has a general decreasing trend. This could indicate that our model's covariance matrix may not be adequate.   
+Looking at the semi-variogram, we can see that the loess smoothed curve does seem to fluctuate randomly around 1.0, but has a general decreasing trend. This looks similar to the semi-variograms we have seen in lecture, so we can infer that the model's covariance matrix is adequate.   
 
 
 
