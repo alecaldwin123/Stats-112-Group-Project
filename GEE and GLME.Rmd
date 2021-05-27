@@ -6,3 +6,19 @@ output: html_document
 ---
 
 
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(geepack)
+library(nlme)
+```
+
+```{r}
+aids = read.csv("aids.csv")
+
+
+aids = aids %>% 
+  mutate(occasion = ceiling(week),
+         gender = factor(gender, level = c("male", "female")),
+         treatment = as.factor(treatment))
+```
+
