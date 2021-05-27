@@ -1,0 +1,8 @@
+---
+title: "GEE and GLME"
+author: "Jay, Alec, Lynn"
+date: "5/27/2021"
+output: html_document
+---
+
+
