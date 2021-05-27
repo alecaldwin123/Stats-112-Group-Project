@@ -87,9 +87,11 @@ aids %>%
  labs(title = "Smoothed Trend of Each Treatment",
       y = "Log cd4", x = "Week") +
  geom_smooth(se = FALSE) +
-  facet_wrap(~treatment)
+  facet_wrap(~factor(treatment))
 
 ```
+
+
 
 ```{r}
 
@@ -222,7 +224,7 @@ model1 = lme(log_cd4 ~ occasion + I(occasion^2) +
 
 summary(model1)
 ```
-Because it is a randomized experiment we do not need the group effect of treatment and therefore treatmetn could be removed in the model
+Because it is a randomized experiment we do not need the group effect of treatment and therefore treatment could be removed in the model
 
 
 

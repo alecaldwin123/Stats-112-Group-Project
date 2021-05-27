@@ -1,8 +1,8 @@
 ---
 title: "Residual Model"
-author: "Jay, Alec, Lynn\"
+author: "Jay, Alec, Lynn"
 date: "5/21/2021"
-output: html_document
+output: pdf_document
 ---
 ```{r message = FALSE, warning = FALSE}
 library(tidyverse)
@@ -19,12 +19,11 @@ aids = aids %>%
 glimpse(aids)
 ```
 
-#model we have
+# Current Model  
 
 ```{r}
 aids <- aids %>% 
-    mutate(knot_term1 = if_else(treatment == 4 & occasion <= 16, occasion^2, occasion),
-           knot_term2 = if_else(treatment == 2, 0, occasion)) %>% 
+    mutate(knot_term1 = if_else((treatment == 4 & occasion <= 16), occasion^2, 0)) %>% 
     relocate(knot_term1, .after = occasion)
 
 
@@ -51,8 +50,15 @@ model_quadratic = lme(log_cd4 ~ occasion + I(occasion^2) +
 summary(model_quadratic)
 ```
 
+```{r}
+#Anova on our two models above
+anova(model_spline2, model_quadratic)
+```
+An ANOVA analysis on our two models above demonstrates that the quadratic model seems to be a better fit for the data that we are given. A significant p-value (p < 0.001) further verifies this assertion. 
 
-#residual Analysis
+# Residual Analysis  
+
+## Histogram of Transformed and Non-transformed Residuals  
 ```{r}
 
 res_prog = residuals(model_quadratic, level = 0)
@@ -72,6 +78,9 @@ tibble(r = res_prog_trans) %>%
   geom_histogram(aes(y = stat(density)), bins = 14 ) +
   geom_function(fun = dnorm, color = "blue")
 ```
+This plot shows the density of our transformed residuals. It appears that our transformed residuals seem to follow a Normal distribution, or at the very least, a a symmetric distribution. 
+
+
 
 ```{r}
 tibble(r = res_prog) %>% 
@@ -79,38 +88,52 @@ tibble(r = res_prog) %>%
   geom_histogram(aes(y = stat(density)), bins = 14 ) +
   geom_function(fun = dnorm, color = "blue")
 ```
+This plot shows the distribution of our residuals (without any transformation). The distribution appears to be a little more left-skewed in comparison to the histogram of our transformed residuals. 
 
+## QQ-Plot  
 ```{r}
 tibble(r = res_prog_trans) %>% 
   ggplot(aes(sample = r)) + 
   geom_qq_line(color = "blue") +
   geom_qq()
 ```
+<<<<<<< HEAD
+The qq plot reveals the tails for the distribution of our residuals are quite heavy. This brings into question whether or not the residuals actually follow a normal distribution. Furthermore, several lingering points at the end of each tail suggest that we may have outliers present in our dataset (this is further discussed in the mahalanobis data section below). 
 
+=======
 
+## Transformed Predicted values vs. Transformed Residuals  
 ```{r}
 #transformed vs actual residual
-predicted_prog = fitted(model_quadratic, level = 0)
-predicted_prog_trans = solve(L_i) %*% predicted_prog
+mu_hat = fitted(model_quadratic, level = 0)
+mu_hat_transformed = solve(L_i) %*% mu_hat
 
 
-tibble(x = predicted_prog_trans, y = res_prog_trans) %>% 
+tibble(x = mu_hat_transformed, y = res_prog_trans) %>% 
   ggplot(aes(x = x, y = y)) +
   geom_hline(yintercept = 0, linetype = "dashed") + 
-  geom_point(shape = 1)
+  geom_point(shape = 1) + 
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(x = "Transformed Predicted Value", y = "Transformed Residual")
 ```
+We can see that there doesn't seem to be any significant curvature in this graph, indicating that the constant variance assumption is correct.  
+However, we can see that there is a large gap between the points, which shows that there seems to be a gap in observed the covariates (x values).  
 
+## Transformed Predicted values vs. Absolute Transformed Residuals  
 ```{r}
-pred_prog_trans_abs = abs(predicted_prog_trans)
+#pred_prog_trans_abs = abs(mu_hat_transformed)
+res_prog_trans_abs = abs(res_prog_trans)
 
-
-tibble(x = pred_prog_trans_abs, y = res_prog_trans) %>% 
+tibble(x = mu_hat_transformed, y = res_prog_trans_abs) %>% 
   ggplot(aes(x = x, y = y)) +
   geom_hline(yintercept = 0.8, linetype = "dashed") + 
   geom_point(shape = 1) +
-  geom_smooth(method = "loess", se = FALSE)
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(x = "Transformed Predicted Value", y = "Absolute Transformed Residual")
 ```
+Using the loess smoothed curve, we can see that there is not a noticable departure from the straight line centered at approximately 0.8. The smoothed curve is relatively straight, but is centered around 0.8. This indicates that the model for the variance (and covariance) is adequate.  
 
+## Mahalanobis Data  
 ```{r}
 mahalanobis_data = tibble(id = aids$id, r_star = res_prog_trans) %>% group_by(id) %>% 
   nest()
@@ -141,20 +164,29 @@ mahalanobis_data_p %>% filter(p_value <=.05)
 #expected outliers are
 
 expected = 5036 *.05
+expected
 ```
 
+Using the mahalanobis data, we can see that we have 129 subjects who have a p-value < 0.05. From the size of our data, we expect that we will have 251.8 outliers. Our actual 129 outliers fall within the range of 251.8, so we do not need to be concerned about the outliers we find here and see in the QQ-plot.  
 
+## Semi-Variogram  
 ```{r}
+aids = aids %>% 
+  mutate(occasion_sqr = occasion ^ 2)
+
 Variogram(model_quadratic,
           data = aids,
-          form = ~ occasion | id,
+          form = ~ occasion + occasion_sqr| id,
           resType = "normalized") %>% 
   as_tibble() %>% 
   ggplot(aes(x = dist, y = variog)) + 
   geom_hline(yintercept = 1, linetype = "dashed") +
   geom_point(shape = 1) +
-  geom_smooth(method = "loess", se = FALSE, span = .3)
+  geom_smooth(method = "loess", se = FALSE, span = .2)
 ```
+
+
+Looking at the semi-variogram, we can see that the loess smoothed curve does seem to fluctuate randomly around 1.0, but has a general decreasing trend. This looks similar to the semi-variograms we have seen in lecture, so we can infer that the model's covariance matrix is adequate.   
 
 
 
