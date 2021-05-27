@@ -26,7 +26,8 @@ aids = aids %>%
 
 aids = aids %>% 
   mutate(counts = exp(log_cd4) - 1) %>% 
-  mutate(counts2 = as.integer(round(counts)))
+  mutate(counts2 = as.integer(round(counts))) %>% 
+  mutate(occasion_sqr = I(occasion^2))
 
 
 ```
@@ -46,7 +47,24 @@ model = glmer(counts2 ~ occasion + I(occasion ^ 2) + treatment:occasion + treatm
 summary(model)
 ```
 
+#Note: Cannot have occasion^2 as a random variable  idk why :(
 
+```{r}
+model1 = glmer(counts2 ~ occasion + I(occasion ^ 2) + treatment:occasion + treatment:I(occasion^2) + age + (1 + occasion | id), 
+              data = aids,
+              family = poisson,
+              control = glmerControl(tol = 1e-12),
+              nAGQ = 0,
+              na.action = na.omit)
+summary(model1)
+```
 
+Questions: 
+Do we need an offset term?
+nAGQ is zero is this okay
+why cant we add a random effect for quadratic term
 
+The best model that we so far is 
+
+$$log(count) = \beta_0 + \beta1*occasion + \beta2*occasion^2 + \beta3-5 * treatment:occasion + \beta6-8*treatment:occasion^2 $$
 
