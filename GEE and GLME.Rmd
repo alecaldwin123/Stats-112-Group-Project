@@ -26,7 +26,8 @@ aids = aids %>%
 
 aids = aids %>% 
   mutate(counts = exp(log_cd4) - 1) %>% 
-  mutate(counts2 = round(counts))
+  mutate(counts2 = as.integer(round(counts)))
+
 
 ```
 
@@ -39,9 +40,10 @@ log_cd4 ~ occasion + I(occasion^2) +
 model = glmer(counts2 ~ occasion + I(occasion ^ 2) + treatment:occasion + treatment:I(occasion^2) + age + (1 | id), 
               data = aids,
               family = poisson,
-              control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)),
-              nAGQ = 500,
+              control = glmerControl(tol = 1e-12),
+              nAGQ = 0,
               na.action = na.omit)
+summary(model)
 ```
 
 
