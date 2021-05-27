@@ -156,3 +156,6 @@ Variogram(model_quadratic,
   geom_smooth(method = "loess", se = FALSE, span = .3)
 ```
 
+
+
+
