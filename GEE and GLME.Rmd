@@ -68,3 +68,11 @@ The best model that we so far is
 
 $$log(count) = \beta_0 + \beta1*occasion + \beta2*occasion^2 + \beta3-5 * treatment:occasion + \beta6-8*treatment:occasion^2 $$
 
+## Comparing the Models
+```{r}
+anova(model, model1)
+```
+$H_0$: the reduced model with only a random intercept is adequate.  
+Because the p-value < 2.2e-16, is less than $\alpha = 0.05$, we reject the null and conclude that the model with both the random intercept and the random slope fits the data better.  
+
+
