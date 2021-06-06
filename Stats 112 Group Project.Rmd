@@ -14,6 +14,8 @@ library(mgcv)
 aids = read.csv("aids.csv")
 
 glimpse(aids)
+
+head(aids)
 ```
 
 ##Exploratory Data Analysis --- 
@@ -21,10 +23,21 @@ glimpse(aids)
 ```{r}
 subjects = unique(aids$id)
 subjects = max(subjects)
+subjects
 ```
 
 The number of subjects in the dataset is `r subjects`
 The number of the covariates is `r ncol(aids) `
+
+
+```{r}
+x = aids %>% 
+  group_by(id) %>% 
+  filter(treatment == 4)
+
+
+summary(aids$age)
+```
 
 ##Univariate summaries 
 
@@ -144,7 +157,7 @@ aids %>%
   filter(treatment == 2) %>% 
   ggplot(aes(x = week)) +
   geom_histogram(color = "black", fill = "gray") +
-  labs(title = "Week of Treatment 2 group")
+  labs(title = "Occurence at each occasion ")
 ```
 As we can see from this graph that all of those in treatment two have different timed occasions, if there were a set occasion then it would stack up similar to the base line or at week 0. 
 
@@ -209,6 +222,14 @@ We can see that there is quite a few number of instances after the -2. This indi
 ##modeling -----
  
 ```{r}
+model1 = lme(log_cd4 ~ occasion + I(occasion^2) + 
+               treatment + treatment:occasion + age + gender, data = aids,
+             random = ~ occasion + I(occasion^2)| id,
+             method = "REML")
+
+```
+ 
+```{r}
 
 
 aids = aids %>% 
@@ -217,9 +238,9 @@ aids = aids %>%
          treatment = as.factor(treatment))
 
 
-model1 = lme(log_cd4 ~ occasion + I(occasion^2) + 
-               treatment + treatment:occasion + age + gender, data = aids,
-             random = ~ occasion + I(occasion^2)| id,
+
+model1 = lme(log_cd4 ~ occasion*treatment + age + gender, data = aids,
+             random = ~ occasion| id,
              method = "REML")
 
 summary(model1)
@@ -289,18 +310,18 @@ summary(model_no_gender)
 ```{r}
 model_linear = lme(log_cd4 ~ occasion  + 
              treatment:occasion +  age, data = aids,
-             random = ~ occasion | id,
-             method = "ML")
+             random = ~ 1| id,
+             method = "REML")
 
 model_quadratic = lme(log_cd4 ~ occasion + I(occasion^2) + 
              treatment:occasion + treatment:I(occasion^2)
                +  age, data = aids,
              random = ~ occasion + I(occasion^2)| id,
-             method = "ML")
+             method = "REML")
 
+summary(model_linear)
 summary(model_quadratic)
 
-anova(model_linear, model_quadratic)
 ```
 $H_0:$ the reduced model without quadratic terms are better
 
@@ -318,7 +339,7 @@ ctrl <- lmeControl(opt = 'optim')
 model_spline = lme(log_cd4 ~ occasion + 
              treatment:occasion + age + knot_term, data = aids,
              random = ~ occasion + knot_term| id,
-             method = "ML",
+             method = "REML",
              control = ctrl)
 summary(model_spline)
 ```

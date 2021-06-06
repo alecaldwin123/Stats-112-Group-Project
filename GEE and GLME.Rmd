@@ -14,6 +14,8 @@ library(glme)
 library(lme4)
 ```
 
+
+
 ```{r}
 aids = read.csv("aids.csv")
 
