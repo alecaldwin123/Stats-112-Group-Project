@@ -2,7 +2,7 @@
 title: "GEE and GLME"
 author: "Jay, Alec, Lynn"
 date: "5/27/2021"
-output: html_document
+output: pdf_document
 ---
 
 
@@ -49,7 +49,7 @@ model = glmer(counts2 ~ occasion + I(occasion ^ 2) + treatment:occasion + treatm
 summary(model)
 ```
 
-#Note: Cannot have occasion^2 as a random variable  idk why :(
+We noticed that cannot have occasion^2 as a random variable, which doesn't allow us to test our ideal model. We will instead just use a random intercept and a random occasion slope.  
 
 ```{r}
 model1 = glmer(counts2 ~ occasion + I(occasion ^ 2) + treatment:occasion + treatment:I(occasion^2) + age + (1 + occasion | id), 
@@ -61,12 +61,33 @@ model1 = glmer(counts2 ~ occasion + I(occasion ^ 2) + treatment:occasion + treat
 summary(model1)
 ```
 
-Questions: 
-Do we need an offset term?
-nAGQ is zero is this okay
-why cant we add a random effect for quadratic term
 
-The best model that we so far is 
+
+The best model that we have so far is:  
 
 $$log(count) = \beta_0 + \beta1*occasion + \beta2*occasion^2 + \beta3-5 * treatment:occasion + \beta6-8*treatment:occasion^2 $$
 
+## Comparing the Models
+```{r}
+anova(model, model1)
+```
+$H_0$: the reduced model with only a random intercept is adequate.  
+Because the p-value < 2.2e-16, is less than $\alpha = 0.05$, we reject the null and conclude that the model with both the random intercept and the random slope fits the data better.  
+
+We will also compare these models to the quadratic model previously.  
+
+```{r}
+model_quadratic2 = lme(log_cd4 ~ occasion + I(occasion^2) + 
+             treatment:occasion + treatment:I(occasion^2)
+               +  age, data = aids,
+             random = ~ occasion + I(occasion^2) | id,
+             method = "ML")
+```
+
+```{r}
+summary(model_quadratic2)
+```
+Comparing the AIC of the GLME model with our previous LME model:  
+- GLME AIC = 52553.6   
+- LME AIC = 11888.81   
+Because the GLME AIC is greater than the LME AIC, we can conclude that the LME model we created previously is better (fits the data better) than the GLME.  
